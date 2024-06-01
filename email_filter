@@ -1,0 +1,76 @@
+import email
+import imaplib
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+# Your email credentials
+EMAIL_ADDRESS = "toiletskibidy41@gmail.com"
+EMAIL_PASSWORD = "skibidy6969"
+
+# IMAP server settings
+IMAP_SERVER = "imap.gmail.com"
+IMAP_PORT = 993
+
+# SMTP server settings
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+
+def get_emails(imap_server, imap_port, email_address, email_password):
+    """Connects to IMAP server and retrieves emails."""
+    imap = imaplib.IMAP4_SSL(imap_server, imap_port)
+    imap.login(email_address, email_password)
+    imap.select("INBOX")
+
+    _, message_ids = imap.search(None, "ALL")
+    messages = []
+
+    for message_id in message_ids[0].split():
+        _, message_data = imap.fetch(message_id, "(RFC822)")
+        message = email.message_from_bytes(message_data[0][1])
+        messages.append(message)
+
+    return messages
+
+def classify_email(message):
+    """Classifies an email as spam or important based on heuristics."""
+    # Implement your spam detection logic here
+    # For example, check for common spam indicators like:
+    # - Subject line containing keywords like "free", "urgent", "discount"
+    # - Sender address with unusual characters or domains
+    # - Email content containing suspicious links
+    # - High frequency of exclamation marks or capital letters
+
+    if "spam" in message["Subject"].lower() or "free" in message["Subject"].lower():
+        return "spam"
+    else:
+        return "important"
+
+def send_email(smtp_server, smtp_port, email_address, email_password, recipient, subject, body):
+    """Sends an email using SMTP."""
+    message = MIMEMultipart()
+    message["From"] = email_address
+    message["To"] = recipient
+    message["Subject"] = subject
+    message.attach(MIMEText(body, "plain"))
+
+    with smtplib.SMTP(smtp_server, smtp_port) as server:
+        server.starttls()
+        server.login(email_address, email_password)
+        server.sendmail(email_address, recipient, message.as_string())
+
+def main():
+    """Main function to automate email scraping and sorting."""
+    emails = get_emails(IMAP_SERVER, IMAP_PORT, EMAIL_ADDRESS, EMAIL_PASSWORD)
+
+    for email in emails:
+        classification = classify_email(email)
+        if classification == "spam":
+            print(f"Spam email detected: {email['Subject']}")
+            # You can optionally move spam emails to a different folder
+        else:
+            print(f"Important email: {email['Subject']}")
+            # You can optionally send a notification for important emails
+
+if __name__ == "__main__":
+    main()
